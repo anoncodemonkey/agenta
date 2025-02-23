@@ -38,7 +38,7 @@ jobs:
             SUPABASE_URL=${{ secrets.SUPABASE_URL }}
             SUPABASE_KEY=${{ secrets.SUPABASE_KEY }}
             PORT=3000
-            AGENT_KEY=WarAndPeace888
+            AGENT_KEY=${{ secrets.AGENT_KEY }}
             EOL
             
             pm2 restart agenta || pm2 start api/index.js --name agenta

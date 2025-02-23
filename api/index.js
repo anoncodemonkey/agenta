@@ -3,7 +3,14 @@ import cors from 'cors';
 import { sendTweet } from '../src/tweet.js';
 
 const app = express();
-app.use(cors());
+
+// Configure CORS
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST'], // Allow specific methods
+  allowedHeaders: ['Content-Type', 'AGENT_KEY'] // Allow our custom header
+}));
+
 app.use(express.json());
 
 // Health check endpoint
@@ -37,11 +44,42 @@ app.post('/tweet', async (req, res) => {
   }
 });
 
+// Documentation endpoint
+app.get('/', (req, res) => {
+  res.json({
+    endpoints: {
+      '/': 'This documentation',
+      '/health': 'Health check endpoint',
+      '/tweet': {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'AGENT_KEY': 'Your agent key'
+        },
+        body: {
+          username: 'Twitter username',
+          password: 'Twitter password',
+          text: 'Tweet text',
+          replyTo: 'Optional tweet ID to reply to'
+        }
+      }
+    }
+  });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something broke!' });
+});
+
 // Start server if not running on Vercel
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+
 if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
   });
 }
 
