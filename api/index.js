@@ -43,7 +43,7 @@ app.post('/tweet', async (req, res) => {
       return res.status(400).json({ error: 'Tweet text or username and password are required' });
     }
 
-    const result = await sendTweet(username, password, text, replyTo);
+    const result = await sendTweet(username, password, email, text, replyTo);
     res.json({ success: true, result });
   } catch (error) {
     console.error('Tweet error:', error);
