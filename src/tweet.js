@@ -130,11 +130,27 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
       await saveCookies(username, updatedCookies);
     }
 
-    // 4. Send the tweet
+    // 4. If this is a reply, fetch the tweet first
+    let targetTweet = null;
+    if (replyToId) {
+      console.log(`Fetching tweet ${replyToId} to reply to...`);
+      try {
+        targetTweet = await scraper.getTweet(replyToId);
+        if (!targetTweet) {
+          throw new Error(`Could not find tweet ${replyToId} to reply to`);
+        }
+        console.log("Found tweet to reply to:", targetTweet.id_str);
+      } catch (error) {
+        console.error("Error fetching tweet to reply to:", error);
+        throw error;
+      }
+    }
+
+    // 5. Send the tweet
     console.log("Preparing to send tweet:", tweetText, replyToId ? `in reply to ${replyToId}` : '');
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const sendTweetResults = await scraper.sendTweet(tweetText, replyToId);
+    const sendTweetResults = await scraper.sendTweet(tweetText, targetTweet ? targetTweet.id_str : null);
     console.log("Send tweet results:", JSON.stringify(sendTweetResults, null, 2));
     
     // Save final cookies after successful tweet
