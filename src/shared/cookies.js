@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Cookie } from 'tough-cookie';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,7 +59,29 @@ export async function loadCookies(username) {
     
     try {
       const cookiesString = await fs.readFile(filePath, 'utf8');
-      const cookies = JSON.parse(cookiesString);
+      const cookiesData = JSON.parse(cookiesString);
+      
+      // Convert each cookie to a Cookie object
+      const cookies = cookiesData.map(cookieData => {
+        try {
+          // Handle both key/value and name/value formats
+          const normalizedData = {
+            ...cookieData,
+            name: cookieData.key || cookieData.name,
+            value: cookieData.value
+          };
+          const cookie = Cookie.fromJSON(normalizedData);
+          if (!cookie) {
+            console.warn('Failed to parse cookie:', cookieData);
+            return null;
+          }
+          return cookie;
+        } catch (err) {
+          console.warn('Error parsing cookie:', err.message);
+          return null;
+        }
+      }).filter(Boolean);
+
       console.log(`Loaded ${cookies.length} cookies for ${username}`);
       return cookies;
     } catch (error) {
