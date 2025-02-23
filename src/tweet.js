@@ -67,53 +67,35 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
       timeout: 30000,
       retries: 3
     });
-    
-    // 1. Try to load and use existing cookies
-    let isAuthenticated = false;
-    const cookies = await loadCookies(username);
-    
-    if (cookies.length > 0) {
-      console.log(`Setting ${cookies.length} cookies`);
-      await scraper.setCookies(cookies);
-      try {
-        isAuthenticated = await scraper.isLoggedIn();
-        console.log("Cookie authentication status:", isAuthenticated);
-      } catch (error) {
-        console.log("Error checking login status:", error.message);
-        isAuthenticated = false;
-      }
-    }
 
-    // 2. If cookies don't work, do fresh login
-    if (!isAuthenticated) {
-      console.log("Performing fresh login...");
-      try {
-        // Clear any existing cookies first
-        await scraper.clearCookies();
-        
-        // Perform login
-        await scraper.login(username, password);
-        
-        // Wait for login to complete and check status
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        isAuthenticated = await scraper.isLoggedIn();
-        console.log("Fresh login status:", isAuthenticated);
+    // Always do a fresh login
+    console.log("Performing fresh login...");
+    try {
+      // Clear any existing cookies
+      await scraper.clearCookies();
+      
+      // Perform login
+      await scraper.login(username, password);
+      
+      // Wait for login to complete
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
+      const isAuthenticated = await scraper.isLoggedIn();
+      console.log("Fresh login status:", isAuthenticated);
 
-        if (isAuthenticated) {
-          const newCookies = await scraper.getCookies();
-          console.log(`Got ${newCookies.length} new cookies after login`);
-          if (newCookies.length > 0) {
-            await saveCookies(username, newCookies);
-          } else {
-            throw new Error("Login succeeded but no cookies were returned");
-          }
-        } else {
-          throw new Error("Login failed - authentication unsuccessful");
-        }
-      } catch (loginError) {
-        console.error("Login error:", loginError);
-        throw loginError;
+      if (!isAuthenticated) {
+        throw new Error("Login failed - authentication unsuccessful");
       }
+
+      // Get cookies after successful login
+      const newCookies = await scraper.getCookies();
+      console.log(`Got ${newCookies.length} new cookies after login`);
+      if (newCookies.length > 0) {
+        await saveCookies(username, newCookies);
+      }
+    } catch (loginError) {
+      console.error("Login error:", loginError);
+      throw loginError;
     }
 
     // 3. Quick verification of authentication
@@ -124,52 +106,15 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
     }
     console.log("Successfully verified access as:", me.screen_name);
     
-    // Update cookies after verification
-    const updatedCookies = await scraper.getCookies();
-    if (updatedCookies.length > 0) {
-      await saveCookies(username, updatedCookies);
-    }
-
     // 4. Send the tweet
     console.log("Preparing to send tweet:", tweetText, replyToId ? `in reply to ${replyToId}` : '');
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Longer delay before tweeting
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Longer delay before tweeting
     
-    let retryCount = 0;
-    const maxRetries = 3;
-    let lastError = null;
+    const sendTweetResults = await scraper.sendTweet(tweetText, replyToId);
+    console.log("Send tweet results:", JSON.stringify(sendTweetResults, null, 2));
+    
+    return sendTweetResults;
 
-    while (retryCount < maxRetries) {
-      try {
-        // Verify we're still logged in before sending
-        const isStillLoggedIn = await scraper.isLoggedIn();
-        if (!isStillLoggedIn) {
-          console.log("Session expired, refreshing login...");
-          await scraper.login(username, password);
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
-
-        const sendTweetResults = await scraper.sendTweet(tweetText, replyToId);
-        console.log("Send tweet results:", JSON.stringify(sendTweetResults, null, 2));
-        
-        // Final cookie save after tweet
-        const finalCookies = await scraper.getCookies();
-        if (finalCookies.length > 0) {
-          await saveCookies(username, finalCookies);
-        }
-        
-        return sendTweetResults;
-      } catch (error) {
-        lastError = error;
-        console.error(`Attempt ${retryCount + 1} failed:`, error.message);
-        retryCount++;
-        if (retryCount < maxRetries) {
-          console.log(`Waiting before retry ${retryCount + 1}...`);
-          await new Promise(resolve => setTimeout(resolve, 5000 * retryCount)); // Increasing delay between retries
-        }
-      }
-    }
-
-    throw lastError || new Error("Failed to send tweet after multiple attempts");
   } catch (error) {
     console.error("Tweet error:", error);
     throw error;
