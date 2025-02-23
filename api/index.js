@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { sendTweet } from '../src/tweet.js';
+import { getLatestTweets } from '../src/mytweets.js';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -28,22 +29,15 @@ app.get('/health', (req, res) => {
 });
 
 // Tweet endpoint
-app.post('/tweet', async (req, res) => {
+app.post('/tweet', validateAgentKey, async (req, res) => {
   try {
-
-    const agentKey = req.header('AGENT_KEY');
-    console.log('Received AGENT_KEY:', agentKey);
+    const { username, password, text, replyTo } = req.body;
     
-    if (agentKey !== process.env.AGENT_KEY) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const { username, password, email, text, replyTo } = req.body;
-    if (!text && (!username || !password)) {
+    if (!username || !password || !text) {
       return res.status(400).json({ error: 'Tweet text or username and password are required' });
     }
 
-    const result = await sendTweet(username, password, email, text, replyTo);
+    const result = await sendTweet(username, password, null, text, replyTo);
     res.json({ success: true, result });
   } catch (error) {
     console.error('Tweet error:', error);
@@ -51,28 +45,19 @@ app.post('/tweet', async (req, res) => {
   }
 });
 
-// Documentation endpoint
-app.get('/', (req, res) => {
-  console.log('Serving documentation!');
-  res.json({
-    endpoints: {
-      '/': 'This documentation',
-      '/health': 'Health check endpoint',
-      '/tweet': {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'AGENT_KEY': 'Your agent key'
-        },
-        body: {
-          username: 'Twitter username',
-          password: 'Twitter password',
-          text: 'Tweet text',
-          replyTo: 'Optional tweet ID to reply to'
-        }
-      }
-    }
-  });
+// Get latest tweets endpoint
+app.get('/tweets/:username', validateAgentKey, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const count = parseInt(req.query.count) || 20;
+
+    console.log(`Getting ${count} latest tweets for ${username}`);
+    const tweets = await getLatestTweets(username, count);
+    res.json({ tweets });
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: error.message || 'Something broke!' });
+  }
 });
 
 // Error handling middleware
@@ -89,3 +74,11 @@ app.listen(PORT, '0.0.0.0', () => {
 
 // Export for Vercel
 export default app;
+
+function validateAgentKey(req, res, next) {
+  const agentKey = req.header('AGENT_KEY');
+  if (agentKey !== process.env.AGENT_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
