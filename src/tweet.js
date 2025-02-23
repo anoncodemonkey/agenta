@@ -1,35 +1,22 @@
 import { Scraper } from 'agent-twitter-client';
 import { Cookie } from 'tough-cookie';
-import { createClient } from '@supabase/supabase-js';
+import fs from 'fs/promises';
+import path from 'path';
 
-// Initialize Supabase client
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
-  throw new Error('Missing Supabase environment variables. Please set SUPABASE_URL and SUPABASE_KEY');
-}
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+const COOKIES_DIR = '/root/agenta/cookies';
 
 async function saveCookies(username, cookies) {
   try {
-    const cookiesString = JSON.stringify(cookies);
     console.log(`Saving ${cookies.length} cookies for ${username}`);
+    const cookiesString = JSON.stringify(cookies, null, 2);
     
-    // Upsert cookies into Supabase
-    const { error } = await supabase
-      .from('twitter_cookies')
-      .upsert({ 
-        username,
-        cookies: cookiesString,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'username'
-      });
-
-    if (error) throw error;
-    console.log(`Successfully saved cookies for ${username}`);
+    // Ensure directory exists
+    await fs.mkdir(COOKIES_DIR, { recursive: true });
+    
+    // Save cookies to file
+    const filePath = path.join(COOKIES_DIR, `${username}.json`);
+    await fs.writeFile(filePath, cookiesString, 'utf8');
+    console.log(`Successfully saved cookies to ${filePath}`);
   } catch (error) {
     console.error('Error saving cookies:', error);
     throw error;
@@ -39,32 +26,27 @@ async function saveCookies(username, cookies) {
 async function loadCookies(username) {
   try {
     console.log(`Loading cookies for ${username}`);
-    // Get cookies from Supabase
-    const { data, error } = await supabase
-      .from('twitter_cookies')
-      .select('cookies')
-      .eq('username', username)
-      .single();
-
-    if (error) {
-      console.log("No cookies found for user:", username);
-      return [];
-    }
-
-    if (!data?.cookies) {
-      return [];
-    }
-
-    const cookiesArray = JSON.parse(data.cookies);
-    console.log(`Loaded ${cookiesArray.length} cookies for ${username}`);
+    const filePath = path.join(COOKIES_DIR, `${username}.json`);
     
-    return cookiesArray.map(cookieData => {
-      const cookie = Cookie.fromJSON(cookieData);
-      if (!cookie) {
-        console.warn('Failed to parse cookie:', cookieData);
+    try {
+      const cookiesString = await fs.readFile(filePath, 'utf8');
+      const cookiesArray = JSON.parse(cookiesString);
+      console.log(`Loaded ${cookiesArray.length} cookies for ${username}`);
+      
+      return cookiesArray.map(cookieData => {
+        const cookie = Cookie.fromJSON(cookieData);
+        if (!cookie) {
+          console.warn('Failed to parse cookie:', cookieData);
+        }
+        return cookie;
+      }).filter(Boolean);
+    } catch (err) {
+      if (err.code === 'ENOENT') {
+        console.log(`No cookie file found for ${username}`);
+        return [];
       }
-      return cookie;
-    }).filter(Boolean);
+      throw err;
+    }
   } catch (error) {
     console.log("Error loading cookies:", error.message);
     return [];
@@ -92,6 +74,7 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
       console.log("Performing fresh login...");
       try {
         await scraper.login(username, password);
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for login to complete
         isAuthenticated = await scraper.isLoggedIn();
         console.log("Login status:", isAuthenticated);
 

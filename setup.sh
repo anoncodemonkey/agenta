@@ -19,10 +19,12 @@ git pull origin main
 # Install dependencies
 npm install
 
+# Create cookies directory
+mkdir -p cookies
+chmod 755 cookies
+
 # Setup environment variables
 cat > .env << EOL
-SUPABASE_URL=https://fwcpubehwjbraaytapvl.supabase.co
-SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3Y3B1YmVod2picmFheXRhcHZsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzY0MzU0MiwiZXhwIjoyMDUzMjE5NTQyfQ.bfT6yOBYrjj4bT5-fPzrNS00BQ9IPsUV-S1tNYK2i0s
 PORT=3000
 AGENT_KEY=Shakespeare888
 NODE_ENV=production
