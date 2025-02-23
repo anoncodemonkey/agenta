@@ -39,19 +39,48 @@ export async function getLatestTweets(username, count = 20) {
     }
     
     console.log(`Fetched ${tweets.length} tweets`);
-    console.log(tweets);
+    if (tweets.length > 0) {
+      console.log('Sample tweet structure:', JSON.stringify(tweets[0], null, 2));
+    }
     
     // Format the tweets for better readability
     const formatTweet = tweet => ({
-      id: tweet.id_str,
-      text: tweet.full_text || tweet.text,
-      created_at: tweet.created_at,
-      retweet_count: tweet.retweet_count,
-      favorite_count: tweet.favorite_count,
-      reply_count: tweet.reply_count,
-      is_retweet: !!tweet.retweeted_status,
-      in_reply_to_status_id: tweet.in_reply_to_status_id_str,
-      in_reply_to_screen_name: tweet.in_reply_to_screen_name
+      id: tweet.id,
+      conversation_id: tweet.conversationId,
+      text: tweet.text,
+      html: tweet.html,
+      author: {
+        id: tweet.userId,
+        username: tweet.username,
+        name: tweet.name
+      },
+      metrics: {
+        replies: tweet.replies,
+        retweets: tweet.retweets,
+        likes: tweet.likes,
+        views: tweet.views,
+        bookmarks: tweet.bookmarkCount
+      },
+      flags: {
+        is_retweet: tweet.isRetweet,
+        is_reply: tweet.isReply,
+        is_quote: tweet.isQuoted,
+        is_pinned: tweet.isPin,
+        has_sensitive_content: tweet.sensitiveContent
+      },
+      media: {
+        photos: tweet.photos || [],
+        videos: tweet.videos || []
+      },
+      metadata: {
+        urls: tweet.urls || [],
+        mentions: tweet.mentions || [],
+        hashtags: tweet.hashtags || [],
+        thread: tweet.thread || []
+      },
+      permanent_url: tweet.permanentUrl,
+      created_at: tweet.timeParsed,
+      timestamp: tweet.timestamp
     });
 
     // Handle both single tweet and array of tweets
