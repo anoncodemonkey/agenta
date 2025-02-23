@@ -64,51 +64,66 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
     console.log(`[${new Date().toISOString()}] Initializing tweet process for ${username}`);
     const scraper = new Scraper({
       debug: true,
-      timeout: 30000,
-      retries: 3
+      timeout: 60000,
+      retries: 3,
+      flowOptions: {
+        autoAcceptTerms: true,
+        autoHandlePhone: true,
+        autoHandleEmail: true
+      }
     });
 
     // 1. Try to use existing cookies first
     let isAuthenticated = false;
     const cookies = await loadCookies(username);
     
-    if (cookies.length > 0) {
-      console.log(`Setting ${cookies.length} cookies`);
+    if (cookies && cookies.length > 0) {
+      console.log(`Setting ${cookies.length} cookies for ${username}`);
       await scraper.setCookies(cookies);
+      
       try {
-        isAuthenticated = await scraper.isLoggedIn();
-        console.log("Cookie authentication status:", isAuthenticated);
+        // Check if cookies are valid
+        const me = await scraper.me();
+        if (me && me.screen_name) {
+          console.log("Successfully authenticated with cookies as:", me.screen_name);
+          isAuthenticated = true;
+        } else {
+          console.log("Cookies are invalid - will try fresh login");
+        }
       } catch (error) {
-        console.log("Error checking login status:", error.message);
-        isAuthenticated = false;
+        console.log("Error checking cookie validity:", error.message);
       }
+    } else {
+      console.log("No saved cookies found");
     }
 
     // 2. If cookies don't work, do fresh login
     if (!isAuthenticated) {
-      console.log("Cookies invalid or not found, performing fresh login...");
+      console.log("Performing fresh login...");
       try {
-        // Clear any existing cookies first
+        // Clear any existing cookies
         await scraper.clearCookies();
         
         // Perform login
         await scraper.login(username, password);
         
-        // Wait for login to complete
+        // Wait a bit for login to complete
         await new Promise(resolve => setTimeout(resolve, 3000));
         
-        isAuthenticated = await scraper.isLoggedIn();
-        console.log("Fresh login status:", isAuthenticated);
-
-        if (!isAuthenticated) {
-          throw new Error("Login failed - authentication unsuccessful");
+        // Verify login worked
+        const me = await scraper.me();
+        if (!me || !me.screen_name) {
+          throw new Error("Login failed - could not verify account");
         }
+        
+        console.log("Successfully logged in as:", me.screen_name);
+        isAuthenticated = true;
 
-        // Save new cookies after successful login
+        // Save new cookies
         const newCookies = await scraper.getCookies();
-        console.log(`Got ${newCookies.length} new cookies after login`);
-        if (newCookies.length > 0) {
+        if (newCookies && newCookies.length > 0) {
           await saveCookies(username, newCookies);
+          console.log(`Saved ${newCookies.length} new cookies`);
         }
       } catch (loginError) {
         console.error("Login error:", loginError);
@@ -116,46 +131,16 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
       }
     }
 
-    // 3. Quick verification of authentication
-    console.log("Verifying account access...");
-    const me = await scraper.me();
-    if (!me) {
-      throw new Error("Failed to verify user account");
-    }
-    console.log("Successfully verified access as:", me.screen_name);
-    
-    // Save any updated cookies
-    const updatedCookies = await scraper.getCookies();
-    if (updatedCookies.length > 0) {
-      await saveCookies(username, updatedCookies);
-    }
-
-    // 4. If this is a reply, fetch the tweet first
-    let targetTweet = null;
-    if (replyToId) {
-      console.log(`Fetching tweet ${replyToId} to reply to...`);
-      try {
-        targetTweet = await scraper.getTweet(replyToId);
-        if (!targetTweet) {
-          throw new Error(`Could not find tweet ${replyToId} to reply to`);
-        }
-        console.log("Found tweet to reply to:", targetTweet.id_str);
-      } catch (error) {
-        console.error("Error fetching tweet to reply to:", error);
-        throw error;
-      }
-    }
-
-    // 5. Send the tweet
+    // 3. Send the tweet
     console.log("Preparing to send tweet:", tweetText, replyToId ? `in reply to ${replyToId}` : '');
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const sendTweetResults = await scraper.sendTweet(tweetText, targetTweet ? targetTweet.id_str : null);
+    const sendTweetResults = await scraper.sendTweet(tweetText, replyToId);
     console.log("Send tweet results:", JSON.stringify(sendTweetResults, null, 2));
     
-    // Save final cookies after successful tweet
+    // 4. Save any updated cookies
     const finalCookies = await scraper.getCookies();
-    if (finalCookies.length > 0) {
+    if (finalCookies && finalCookies.length > 0) {
       await saveCookies(username, finalCookies);
     }
     
