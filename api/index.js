@@ -38,7 +38,7 @@ app.post('/tweet', async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { username, password, text, replyTo } = req.body;
+    const { username, password, email, text, replyTo } = req.body;
     if (!text && (!username || !password)) {
       return res.status(400).json({ error: 'Tweet text or username and password are required' });
     }

@@ -78,7 +78,7 @@ async function loadCookies(username) {
   }
 }
 
-export async function sendTweet(username, password, tweetText, replyToId = null) {
+export async function sendTweet(username, password, email, tweetText, replyToId = null) {
   try {
     console.log(`[${new Date().toISOString()}] Initializing tweet process for ${username}`);
     const scraper = new Scraper({
@@ -124,7 +124,7 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
         // Perform login
         console.log("Attempting login with credentials...");
         try {
-          await scraper.login(username, password);
+          await scraper.login(username, password, email);
           console.log("Login request completed");
         } catch (loginError) {
           console.error("Error during login:", loginError);
