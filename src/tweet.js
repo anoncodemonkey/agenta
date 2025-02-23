@@ -10,8 +10,24 @@ const COOKIES_DIR = path.join(__dirname, '..', 'cookies');
 
 async function saveCookies(username, cookies) {
   try {
-    console.log(`Saving ${cookies.length} cookies for ${username}`);
-    const cookiesString = JSON.stringify(cookies, null, 2);
+    if (!cookies || cookies.length === 0) {
+      console.log('No cookies to save');
+      return;
+    }
+
+    // Filter out guest cookies
+    const validCookies = cookies.filter(cookie => {
+      const name = cookie.key || cookie.name;
+      return !name.startsWith('guest_') && name !== 'personalization_id';
+    });
+
+    if (validCookies.length === 0) {
+      console.log('No valid session cookies to save');
+      return;
+    }
+
+    console.log(`Saving ${validCookies.length} cookies for ${username}`);
+    const cookiesString = JSON.stringify(validCookies, null, 2);
     
     // Ensure directory exists
     await fs.mkdir(COOKIES_DIR, { recursive: true });
