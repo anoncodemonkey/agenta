@@ -19,6 +19,11 @@ app.get('/health', (req, res) => {
 app.post('/tweet', async (req, res) => {
   try {
 
+    const agentKey = req.header('AGENT_KEY');
+    if (agentKey !== process.env.AGENT_KEY) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { username, password, text, replyTo } = req.body;
     if (!text && (!username || !password)) {
       return res.status(400).json({ error: 'Tweet text or username and password are required' });
