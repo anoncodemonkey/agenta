@@ -116,17 +116,45 @@ export async function sendTweet(username, password, email, tweetText, replyToId 
     console.log("Preparing to send tweet:", tweetText, replyToId ? `in reply to ${replyToId}` : '');
     await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const sendTweetResults = await scraper.sendTweet(tweetText, replyToId);
-    console.log("Send tweet results:", JSON.stringify(sendTweetResults, null, 2));
-    
-    // 4. Save any updated cookies
-    const finalCookies = await scraper.getCookies();
-    if (finalCookies && finalCookies.length > 0) {
-      console.log(`Saving ${finalCookies.length} cookies after successful tweet`);
-      await saveCookies(username, finalCookies);
+    try {
+      const sendTweetResults = await scraper.sendTweet(tweetText, replyToId);
+      console.log("Send tweet results:", JSON.stringify(sendTweetResults, null, 2));
+      
+      // Save any updated cookies
+      const finalCookies = await scraper.getCookies();
+      if (finalCookies && finalCookies.length > 0) {
+        console.log(`Saving ${finalCookies.length} cookies after successful tweet`);
+        await saveCookies(username, finalCookies);
+      }
+      
+      return sendTweetResults;
+    } catch (error) {
+      console.error("Tweet error details:", {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        // Log internal error details if available
+        internal: error.internal || {},
+        // Log raw error response if available
+        response: error.response ? {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        } : null,
+        // Log any additional error properties
+        ...error
+      });
+      throw error;
     }
     
-    return sendTweetResults;
+    // 4. Save any updated cookies
+    // const finalCookies = await scraper.getCookies();
+    // if (finalCookies && finalCookies.length > 0) {
+    //   console.log(`Saving ${finalCookies.length} cookies after successful tweet`);
+    //   await saveCookies(username, finalCookies);
+    // }
+    
+    // return sendTweetResults;
 
   } catch (error) {
     console.error("Tweet error:", error);
