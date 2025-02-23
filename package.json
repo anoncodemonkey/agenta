@@ -10,7 +10,8 @@
   "scripts": {
     "start": "node api/index.js",
     "dev": "node api/index.js",
-    "build": "npm install"
+    "build": "npm install",
+    "non": "node src/non.js"
   },
   "dependencies": {
     "agent-twitter-client": "latest",

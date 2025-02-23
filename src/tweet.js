@@ -112,49 +112,7 @@ export async function sendTweet(username, password, email, tweetText, replyToId 
       }
     }
 
-    // 2. If no cookies or invalid, do fresh login
-    console.log("Checking for valid cookies...");
-    if (!isAuthenticated) {
-      console.log("Starting fresh login process...");
-      try {
-        // Clear any existing cookies
-        console.log("Clearing existing cookies...");
-        await scraper.clearCookies();
-        
-        // Perform login
-        console.log("Attempting login with credentials...");
-        try {
-          await scraper.login(username, password, email);
-          console.log("Login request completed");
-        } catch (loginError) {
-          console.error("Error during login:", loginError);
-          throw loginError;
-        }
-        
-        // Wait a bit for login to complete
-        console.log("Waiting for login to settle...");
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        isAuthenticated = true;
-
-        // Save new cookies
-        const newCookies = await scraper.getCookies();
-        if (newCookies && newCookies.length > 0) {
-          console.log(`Got ${newCookies.length} new cookies after login, saving them...`);
-          await saveCookies(username, newCookies);
-        } else {
-          console.log("Warning: No cookies received after login");
-        }
-      } catch (loginError) {
-        console.error("Login process failed:", loginError);
-        throw loginError;
-      }
-    }
-
-    if (!isAuthenticated) {
-      throw new Error("Failed to authenticate - no valid cookies and login failed");
-    }
-
-    // 3. Send the tweet
+    // 2. Send the tweet
     console.log("Preparing to send tweet:", tweetText, replyToId ? `in reply to ${replyToId}` : '');
     await new Promise(resolve => setTimeout(resolve, 2000));
     
