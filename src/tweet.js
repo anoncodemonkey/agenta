@@ -131,20 +131,45 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
     }
 
     // 4. Send the tweet
-    console.log("Preparing to send tweet:", tweetText);
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay before tweeting
+    console.log("Preparing to send tweet:", tweetText, replyToId ? `in reply to ${replyToId}` : '');
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Longer delay before tweeting
     
-    const sendTweetResults = await scraper.sendTweet(tweetText, replyToId);
-    console.log("Send tweet results:", JSON.stringify(sendTweetResults, null, 2));
-    
-    // Final cookie save after tweet
-    const finalCookies = await scraper.getCookies();
-    if (finalCookies.length > 0) {
-      await saveCookies(username, finalCookies);
-    }
-    
-    return sendTweetResults;
+    let retryCount = 0;
+    const maxRetries = 3;
+    let lastError = null;
 
+    while (retryCount < maxRetries) {
+      try {
+        // Verify we're still logged in before sending
+        const isStillLoggedIn = await scraper.isLoggedIn();
+        if (!isStillLoggedIn) {
+          console.log("Session expired, refreshing login...");
+          await scraper.login(username, password);
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+
+        const sendTweetResults = await scraper.sendTweet(tweetText, replyToId);
+        console.log("Send tweet results:", JSON.stringify(sendTweetResults, null, 2));
+        
+        // Final cookie save after tweet
+        const finalCookies = await scraper.getCookies();
+        if (finalCookies.length > 0) {
+          await saveCookies(username, finalCookies);
+        }
+        
+        return sendTweetResults;
+      } catch (error) {
+        lastError = error;
+        console.error(`Attempt ${retryCount + 1} failed:`, error.message);
+        retryCount++;
+        if (retryCount < maxRetries) {
+          console.log(`Waiting before retry ${retryCount + 1}...`);
+          await new Promise(resolve => setTimeout(resolve, 5000 * retryCount)); // Increasing delay between retries
+        }
+      }
+    }
+
+    throw lastError || new Error("Failed to send tweet after multiple attempts");
   } catch (error) {
     console.error("Tweet error:", error);
     throw error;
