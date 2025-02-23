@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "agent-twitter-client": "latest",
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.18.2"
   }
 }
