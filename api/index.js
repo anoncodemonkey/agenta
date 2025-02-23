@@ -17,8 +17,9 @@ app.use(express.json());
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok',
-    environment: process.env.NODE_ENV,
-    hasTwitterCookies: !!process.env.TWITTER_COOKIES
+    environment: process.env.NODE_ENV || 'development',
+    hasTwitterCookies: false,
+    timestamp: new Date().toISOString()
   });
 });
 
