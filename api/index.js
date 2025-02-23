@@ -33,7 +33,6 @@ app.post('/tweet', async (req, res) => {
 
     const agentKey = req.header('AGENT_KEY');
     console.log('Received AGENT_KEY:', agentKey);
-    console.log('Expected AGENT_KEY:', process.env.AGENT_KEY);
     
     if (agentKey !== process.env.AGENT_KEY) {
       return res.status(401).json({ error: 'Unauthorized' });

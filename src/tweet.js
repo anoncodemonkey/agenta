@@ -114,19 +114,42 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
 
     // 2. If no cookies or invalid, do fresh login
     if (!isAuthenticated) {
-      console.log("No valid cookies found, performing fresh login...");
+      console.log("Starting fresh login process...");
       try {
         // Clear any existing cookies
+        console.log("Clearing existing cookies...");
         await scraper.clearCookies();
         
         // Perform login
-        await scraper.login(username, password);
+        console.log("Attempting to load login page...");
+        try {
+          await scraper.loadLoginPage();
+          console.log("Login page loaded successfully");
+        } catch (loadError) {
+          console.error("Error loading login page:", loadError);
+          throw loadError;
+        }
+
+        console.log("Attempting login with credentials...");
+        try {
+          await scraper.login(username, password);
+          console.log("Login request completed");
+        } catch (loginError) {
+          console.error("Error during login:", loginError);
+          throw loginError;
+        }
         
         // Wait a bit for login to complete
+        console.log("Waiting for login to settle...");
         await new Promise(resolve => setTimeout(resolve, 3000));
         
         // Verify login worked
+        console.log("Verifying login status...");
         const me = await scraper.me();
+        if (!me) {
+          console.error("Login verification failed - me() returned null");
+          throw new Error("Login failed - could not verify account");
+        }
         
         console.log("Successfully logged in as:", me.screen_name);
         isAuthenticated = true;
@@ -140,7 +163,7 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
           console.log("Warning: No cookies received after login");
         }
       } catch (loginError) {
-        console.error("Login error:", loginError);
+        console.error("Login process failed:", loginError);
         throw loginError;
       }
     }
