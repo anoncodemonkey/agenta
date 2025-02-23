@@ -47,6 +47,7 @@ app.post('/tweet', async (req, res) => {
 
 // Documentation endpoint
 app.get('/', (req, res) => {
+  console.log('Serving documentation');
   res.json({
     endpoints: {
       '/': 'This documentation',
@@ -76,23 +77,8 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-
-// Create HTTP server instance
-const server = app.listen(PORT, '::', () => {
-  console.log(`Server running on http://[::]:${PORT} (IPv6)`);
-});
-
-// Enable dual-stack (IPv4 and IPv6)
-server.addListener('listening', () => {
-  // Force IPv4
-  const addr = server.address();
-  if (addr.family === 'IPv6') {
-    server.close(() => {
-      server.listen(PORT, '0.0.0.0', () => {
-        console.log(`Server running on http://0.0.0.0:${PORT} (IPv4)`);
-      });
-    });
-  }
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
 });
 
 // Export for Vercel
