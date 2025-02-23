@@ -121,15 +121,6 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
         await scraper.clearCookies();
         
         // Perform login
-        console.log("Attempting to load login page...");
-        try {
-          await scraper.login(username, password);
-          console.log("Login page loaded successfully");
-        } catch (loadError) {
-          console.error("Error loading login page:", loadError);
-          throw loadError;
-        }
-
         console.log("Attempting login with credentials...");
         try {
           await scraper.login(username, password);
