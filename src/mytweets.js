@@ -29,7 +29,15 @@ export async function getLatestTweets(username, count = 20) {
 
     // Get user tweets
     console.log(`Fetching ${count} latest tweets for ${username}...`);
-    const tweets = await scraper.getTweets(username, count);
+    const tweetsGenerator = await scraper.getTweets(username, count);
+    
+    // Collect tweets from generator
+    const tweets = [];
+    for await (const tweet of tweetsGenerator) {
+      tweets.push(tweet);
+      if (tweets.length >= count) break;
+    }
+    
     console.log(`Fetched ${tweets.length} tweets`);
     console.log(tweets);
     
