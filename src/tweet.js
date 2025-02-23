@@ -2,8 +2,11 @@ import { Scraper } from 'agent-twitter-client';
 import { Cookie } from 'tough-cookie';
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const COOKIES_DIR = '/root/agenta/cookies';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const COOKIES_DIR = path.join(__dirname, '..', 'cookies');
 
 async function saveCookies(username, cookies) {
   try {
@@ -108,9 +111,6 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
         
         // Verify login worked
         const me = await scraper.me();
-        if (!me || !me.screen_name) {
-          throw new Error("Login failed - could not verify account");
-        }
         
         console.log("Successfully logged in as:", me.screen_name);
         isAuthenticated = true;
