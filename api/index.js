@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import { sendTweet } from '../src/tweet.js';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 
@@ -28,6 +32,9 @@ app.post('/tweet', async (req, res) => {
   try {
 
     const agentKey = req.header('AGENT_KEY');
+    console.log('Received AGENT_KEY:', agentKey);
+    console.log('Expected AGENT_KEY:', process.env.AGENT_KEY);
+    
     if (agentKey !== process.env.AGENT_KEY) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
