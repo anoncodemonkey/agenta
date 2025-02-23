@@ -34,11 +34,17 @@ async function loadCookies(username) {
       console.log(`Loaded ${cookiesArray.length} cookies for ${username}`);
       
       return cookiesArray.map(cookieData => {
-        const cookie = Cookie.fromJSON(cookieData);
-        if (!cookie) {
-          console.warn('Failed to parse cookie:', cookieData);
+        try {
+          const cookie = Cookie.fromJSON(cookieData);
+          if (!cookie) {
+            console.warn('Failed to parse cookie:', cookieData);
+            return null;
+          }
+          return cookie;
+        } catch (err) {
+          console.warn('Error parsing cookie:', err.message);
+          return null;
         }
-        return cookie;
       }).filter(Boolean);
     } catch (err) {
       if (err.code === 'ENOENT') {
@@ -55,8 +61,12 @@ async function loadCookies(username) {
 
 export async function sendTweet(username, password, tweetText, replyToId = null) {
   try {
-    console.log(`Initializing tweet process for ${username}`);
-    const scraper = new Scraper();
+    console.log(`[${new Date().toISOString()}] Initializing tweet process for ${username}`);
+    const scraper = new Scraper({
+      debug: true,
+      timeout: 30000,
+      retries: 3
+    });
     
     // 1. Try to load and use existing cookies
     let isAuthenticated = false;
@@ -65,23 +75,38 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
     if (cookies.length > 0) {
       console.log(`Setting ${cookies.length} cookies`);
       await scraper.setCookies(cookies);
-      isAuthenticated = await scraper.isLoggedIn();
-      console.log("Cookie authentication status:", isAuthenticated);
+      try {
+        isAuthenticated = await scraper.isLoggedIn();
+        console.log("Cookie authentication status:", isAuthenticated);
+      } catch (error) {
+        console.log("Error checking login status:", error.message);
+        isAuthenticated = false;
+      }
     }
 
     // 2. If cookies don't work, do fresh login
     if (!isAuthenticated) {
       console.log("Performing fresh login...");
       try {
+        // Clear any existing cookies first
+        await scraper.clearCookies();
+        
+        // Perform login
         await scraper.login(username, password);
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for login to complete
+        
+        // Wait for login to complete and check status
+        await new Promise(resolve => setTimeout(resolve, 3000));
         isAuthenticated = await scraper.isLoggedIn();
-        console.log("Login status:", isAuthenticated);
+        console.log("Fresh login status:", isAuthenticated);
 
         if (isAuthenticated) {
           const newCookies = await scraper.getCookies();
           console.log(`Got ${newCookies.length} new cookies after login`);
-          await saveCookies(username, newCookies);
+          if (newCookies.length > 0) {
+            await saveCookies(username, newCookies);
+          } else {
+            throw new Error("Login succeeded but no cookies were returned");
+          }
         } else {
           throw new Error("Login failed - authentication unsuccessful");
         }
@@ -92,6 +117,7 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
     }
 
     // 3. Quick verification of authentication
+    console.log("Verifying account access...");
     const me = await scraper.me();
     if (!me) {
       throw new Error("Failed to verify user account");
@@ -100,12 +126,23 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
     
     // Update cookies after verification
     const updatedCookies = await scraper.getCookies();
-    await saveCookies(username, updatedCookies);
+    if (updatedCookies.length > 0) {
+      await saveCookies(username, updatedCookies);
+    }
 
     // 4. Send the tweet
-    console.log("Sending tweet:", tweetText);
+    console.log("Preparing to send tweet:", tweetText);
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Small delay before tweeting
+    
     const sendTweetResults = await scraper.sendTweet(tweetText, replyToId);
-    console.log("Send tweet results:", sendTweetResults);
+    console.log("Send tweet results:", JSON.stringify(sendTweetResults, null, 2));
+    
+    // Final cookie save after tweet
+    const finalCookies = await scraper.getCookies();
+    if (finalCookies.length > 0) {
+      await saveCookies(username, finalCookies);
+    }
+    
     return sendTweetResults;
 
   } catch (error) {
