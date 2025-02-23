@@ -47,7 +47,7 @@ app.post('/tweet', async (req, res) => {
 
 // Documentation endpoint
 app.get('/', (req, res) => {
-  console.log('Serving documentation');
+  console.log('Serving documentation!');
   res.json({
     endpoints: {
       '/': 'This documentation',
