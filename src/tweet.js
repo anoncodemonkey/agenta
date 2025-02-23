@@ -123,7 +123,7 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
         // Perform login
         console.log("Attempting to load login page...");
         try {
-          await scraper.loadLoginPage();
+          await scraper.login(username, password);
           console.log("Login page loaded successfully");
         } catch (loadError) {
           console.error("Error loading login page:", loadError);
