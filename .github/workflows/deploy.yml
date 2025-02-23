@@ -26,7 +26,7 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /root/tweeter
+            cd /root/agenta
             git pull
             npm install
-            pm2 restart tweeter || pm2 start api/index.js --name tweeter
+            pm2 restart agenta || pm2 start api/index.js --name agenta

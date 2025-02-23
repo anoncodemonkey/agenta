@@ -3,9 +3,14 @@ import { Cookie } from 'tough-cookie';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client
-const supabaseUrl = "https://fwcpubehwjbraaytapvl.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3Y3B1YmVod2picmFheXRhcHZsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNzY0MzU0MiwiZXhwIjoyMDUzMjE5NTQyfQ.bfT6yOBYrjj4bT5-fPzrNS00BQ9IPsUV-S1tNYK2i0s";
-const supabase = createClient(supabaseUrl, supabaseKey);
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+  throw new Error('Missing Supabase environment variables. Please set SUPABASE_URL and SUPABASE_KEY');
+}
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
 
 async function saveCookies(username, cookies) {
   try {
