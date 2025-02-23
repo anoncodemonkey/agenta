@@ -113,6 +113,7 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
     }
 
     // 2. If no cookies or invalid, do fresh login
+    console.log("Checking for valid cookies...");
     if (!isAuthenticated) {
       console.log("Starting fresh login process...");
       try {
