@@ -134,16 +134,6 @@ export async function sendTweet(username, password, email, tweetText, replyToId 
         // Wait a bit for login to complete
         console.log("Waiting for login to settle...");
         await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Verify login worked
-        console.log("Verifying login status...");
-        const me = await scraper.me();
-        if (!me) {
-          console.error("Login verification failed - me() returned null");
-          throw new Error("Login failed - could not verify account");
-        }
-        
-        console.log("Successfully logged in as:", me.screen_name);
         isAuthenticated = true;
 
         // Save new cookies
