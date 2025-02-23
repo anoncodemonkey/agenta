@@ -30,6 +30,8 @@ export async function getLatestTweets(username, count = 20) {
     // Get user tweets
     console.log(`Fetching ${count} latest tweets for ${username}...`);
     const tweets = await scraper.getTweets(username, count);
+    console.log(`Fetched ${tweets.length} tweets`);
+    console.log(tweets);
     
     // Format the tweets for better readability
     const formatTweet = tweet => ({
