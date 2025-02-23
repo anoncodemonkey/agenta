@@ -32,7 +32,7 @@ export async function getLatestTweets(username, count = 20) {
     const tweets = await scraper.getTweets(username, count);
     
     // Format the tweets for better readability
-    const formattedTweets = tweets.map(tweet => ({
+    const formatTweet = tweet => ({
       id: tweet.id_str,
       text: tweet.full_text || tweet.text,
       created_at: tweet.created_at,
@@ -42,7 +42,12 @@ export async function getLatestTweets(username, count = 20) {
       is_retweet: !!tweet.retweeted_status,
       in_reply_to_status_id: tweet.in_reply_to_status_id_str,
       in_reply_to_screen_name: tweet.in_reply_to_screen_name
-    }));
+    });
+
+    // Handle both single tweet and array of tweets
+    const formattedTweets = Array.isArray(tweets) 
+      ? tweets.map(formatTweet)
+      : tweets ? [formatTweet(tweets)] : [];
 
     console.log(`Successfully fetched ${formattedTweets.length} tweets`);
     return formattedTweets;
