@@ -78,28 +78,24 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
     const cookies = await loadCookies(username);
     
     if (cookies && cookies.length > 0) {
-      console.log(`Setting ${cookies.length} cookies for ${username}`);
+      console.log(`Found ${cookies.length} saved cookies, attempting to use them...`);
       await scraper.setCookies(cookies);
       
       try {
         // Check if cookies are valid
         const me = await scraper.me();
         if (me && me.screen_name) {
-          console.log("Successfully authenticated with cookies as:", me.screen_name);
+          console.log("Successfully authenticated with saved cookies as:", me.screen_name);
           isAuthenticated = true;
-        } else {
-          console.log("Cookies are invalid - will try fresh login");
         }
       } catch (error) {
-        console.log("Error checking cookie validity:", error.message);
+        console.log("Saved cookies are invalid, will do fresh login");
       }
-    } else {
-      console.log("No saved cookies found");
     }
 
-    // 2. If cookies don't work, do fresh login
+    // 2. If no cookies or invalid, do fresh login
     if (!isAuthenticated) {
-      console.log("Performing fresh login...");
+      console.log("No valid cookies found, performing fresh login...");
       try {
         // Clear any existing cookies
         await scraper.clearCookies();
@@ -122,13 +118,19 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
         // Save new cookies
         const newCookies = await scraper.getCookies();
         if (newCookies && newCookies.length > 0) {
+          console.log(`Got ${newCookies.length} new cookies after login, saving them...`);
           await saveCookies(username, newCookies);
-          console.log(`Saved ${newCookies.length} new cookies`);
+        } else {
+          console.log("Warning: No cookies received after login");
         }
       } catch (loginError) {
         console.error("Login error:", loginError);
         throw loginError;
       }
+    }
+
+    if (!isAuthenticated) {
+      throw new Error("Failed to authenticate - no valid cookies and login failed");
     }
 
     // 3. Send the tweet
@@ -141,6 +143,7 @@ export async function sendTweet(username, password, tweetText, replyToId = null)
     // 4. Save any updated cookies
     const finalCookies = await scraper.getCookies();
     if (finalCookies && finalCookies.length > 0) {
+      console.log(`Saving ${finalCookies.length} cookies after successful tweet`);
       await saveCookies(username, finalCookies);
     }
     
